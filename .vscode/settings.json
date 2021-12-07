@@ -1,0 +1,30 @@
+{
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/awslabs/goformation/master/schema/sam.schema.json": [
+            "*sam.yaml"
+        ],
+        "https://raw.githubusercontent.com/awslabs/goformation/master/schema/cloudformation.schema.json": [
+            "*cf.yaml"
+        ]
+    },
+    "yaml.customTags": [
+        "!Equals sequence",
+        "!FindInMap sequence",
+        "!GetAtt",
+        "!GetAZs",
+        "!ImportValue",
+        "!Join sequence",
+        "!Ref",
+        "!Select sequence",
+        "!Split sequence",
+        "!Sub"
+    ],
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "*order.json",
+            ],
+            "url": "./09-Validation/Schemas/order.schema.json"
+        },
+    ],
+}

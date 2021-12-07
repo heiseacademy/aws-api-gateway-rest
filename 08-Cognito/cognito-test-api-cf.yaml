@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Eine Beispiel API mit Cognito Genehmiger
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: cognito-test-api
+  userPoolArn:
+    Type: String
+    Description: ARN des User Pools
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:  
+  cognitoApi:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+
+      Description: Cognito Test API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-authorizer.html
+  
+  authorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties: 
+      Type: COGNITO_USER_POOLS
+      Name: auth
+      IdentitySource: method.request.header.Authorization 
+      RestApiId: !Ref cognitoApi
+      ProviderARNs:
+        - !Ref userPoolArn
+
+  rootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !GetAtt cognitoApi.RootResourceId
+      RestApiId: !Ref cognitoApi
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref authorizer
+      AuthorizationScopes: [email]
+      HttpMethod: GET          
+      MethodResponses:
+        - StatusCode: '200'                
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': '{"Message": "Super secret"}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - rootMethod
+    Properties:
+      RestApiId: !Ref cognitoApi
+      StageName: develop
+      Description: Version 1.0      
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${cognitoApi}.execute-api.${AWS::Region}.amazonaws.com/develop

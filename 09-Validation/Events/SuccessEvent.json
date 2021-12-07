@@ -1,0 +1,3 @@
+{
+    "body": "{ \"firstName\": \"string\", \"lastName\": \"string\",  \"city\": \"string\",  \"zipCode\": 11111, \"street\": \"string\", \"position\": {  \"itemNumber\": 1,  \"quantity\": 1000}}"
+}

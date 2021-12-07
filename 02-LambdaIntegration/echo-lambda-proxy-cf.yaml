@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Echo Api
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: echo-api
+  simpleEchoFunctionName:
+    Type: String
+    Default: echo-simple-lambda
+  proxyEchoFunctionName:
+    Type: String
+    Default: echo-proxy-lambda
+
+# Ressourcen
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:  
+  echoAPI:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      Description: Echo Antworten mit Lambda Integration
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+  echoSimpleResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt echoAPI.RootResourceId
+      PathPart: echo-simple
+      RestApiId: !Ref echoAPI
+
+  echoSimpleMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref echoSimpleResource
+      RestApiId: !Ref echoAPI
+      AuthorizationType: NONE
+      HttpMethod: POST          
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${echoSimpleLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': ''
+    DependsOn: echoSimpleLambdaFunction
+
+  echoProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt echoAPI.RootResourceId
+      PathPart: echo-proxy
+      RestApiId: !Ref echoAPI
+
+  echoProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref echoProxyResource
+      RestApiId: !Ref echoAPI
+      AuthorizationType: NONE
+      HttpMethod: POST          
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS_PROXY
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${echoProxyLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': ''
+    DependsOn: echoProxyLambdaFunction
+
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - echoSimpleMethod  
+    Properties:
+      RestApiId: !Ref echoAPI
+      StageName: develop
+      Description: Version 1.0      
+
+  simpleLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:      
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  # https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+  echoSimpleLambdaFunction:
+    Type: AWS::Lambda::Function    
+    Properties:
+      FunctionName: !Ref simpleEchoFunctionName
+      Role: !GetAtt simpleLambdaRole.Arn
+      Runtime: nodejs14.x
+      Handler: index.handler            
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => { 
+            console.log("request: " + JSON.stringify(event));
+            const responseBody = {
+                message: "Echo Antwort",
+                received: event
+            };
+            console.log("response: " + JSON.stringify(responseBody))
+            return responseBody;
+          }     
+    DependsOn: simpleLambdaRole
+  
+  accessToApiPermissionOne:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction     
+      FunctionName: !Ref simpleEchoFunctionName
+      Principal: apigateway.amazonaws.com            
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${echoAPI}/*
+    DependsOn:
+      - echoSimpleMethod
+      - echoSimpleLambdaFunction
+
+  # https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+  echoProxyLambdaFunction:
+    Type: AWS::Lambda::Function    
+    Properties:
+      FunctionName: !Ref proxyEchoFunctionName
+      Role: !GetAtt simpleLambdaRole.Arn
+      Runtime: nodejs14.x
+      Handler: index.handler            
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => { 
+              console.log("request: " + JSON.stringify(event));
+              const responseBody = {
+                  message: "Echo Antwort",
+                  received: event
+              };
+              let response = {
+                  statusCode: 200,
+                  headers: {
+                      "x-custom-header" : "Mein spezieller Header"
+                  },
+                  body: JSON.stringify(responseBody)
+              };              
+              console.log("response: " + JSON.stringify(response))
+              return response;
+          }            
+    DependsOn: simpleLambdaRole
+
+  accessToApiPermissionTwo:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction     
+      FunctionName: !Ref proxyEchoFunctionName
+      Principal: apigateway.amazonaws.com            
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${echoAPI}/*
+    DependsOn:
+      - echoProxyMethod
+      - echoProxyLambdaFunction
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${echoAPI}.execute-api.${AWS::Region}.amazonaws.com/develop

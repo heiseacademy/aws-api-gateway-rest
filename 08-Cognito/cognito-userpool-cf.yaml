@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cognito User Pool
+
+# Cloudformation - Getting started
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/gettingstarted.templatebasics.html
+
+Parameters:
+  userPoolName:
+    Type: String
+    Default: userpool
+  clientName:
+    Type: String
+    Default: webclient
+  domainName:
+    Type: String
+    Description: Eindeutiger Bezeichner für die Domain, z.B. vorname-name-123
+  
+# Ressourcen
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html
+
+Resources:  
+  userPool:
+    Type: AWS::Cognito::UserPool
+    Properties: 
+      UserPoolName: !Ref userPoolName
+      AutoVerifiedAttributes:
+        - email        
+      Schema:        
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true       
+      UserPoolTags:        
+        project: api-gateway-course
+        created: generated
+     
+  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpoolclient.html
+  appClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: !Ref clientName
+      GenerateSecret: true
+      UserPoolId: !Ref userPool
+      SupportedIdentityProviders:
+        - "COGNITO"
+      CallbackURLs:
+        - https://example.com
+      DefaultRedirectURI: https://example.com
+      EnableTokenRevocation: true
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH                      
+      AllowedOAuthFlowsUserPoolClient: true      
+      AllowedOAuthFlows: 
+        - code
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile      
+
+  userPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:           
+      Domain: !Ref domainName
+      UserPoolId: !Ref userPool
+
+
+Outputs:
+  userPoolArn:
+    Value: !GetAtt userPool.Arn
+  userPoolId:
+    Value: !Ref userPool
+  clientId:
+    Value: !Ref appClient
+  

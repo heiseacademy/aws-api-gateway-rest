@@ -1,0 +1,366 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Like API Beispiel (Mag ich, mag ich nicht)
+
+# Cloudformation - Getting started
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/gettingstarted.templatebasics.html
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: like-api
+  likeFunctionName:
+    Type: String
+    Default: like-api-lambda
+  dynamoDbTableName:
+    Type: String
+    Default: LikeApiTable
+  customDynamoAccessPolicyName:
+    Type: String
+    Default: CustomDynamoAccessPolicy
+  customCloudWatchAccessPolicyName:
+    Type: String
+    Default: CustomCloudWatchAccessPolicy
+  customApiGatewayCloudWatchRole:
+    Type: String
+    Default: CustomApiGwCloudWatchRole
+
+# Ressourcen
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:  
+  likeApi:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      Description: Like Api
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+  # Für alle API Gateways in der gleichen Region
+  apiGwCloudWatchRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - >-
+          arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+
+  # Für alle API Gateways in der gleichen Region
+  apiAccount:
+    Type: 'AWS::ApiGateway::Account'
+    Properties:
+      CloudWatchRoleArn: !GetAtt apiGwCloudWatchRole.Arn
+
+  rootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !GetAtt likeApi.RootResourceId
+      RestApiId: !Ref likeApi
+      AuthorizationType: NONE
+      HttpMethod: GET          
+      MethodResponses:
+        - StatusCode: '200'                
+          ResponseModels: { "text/html": "Empty" } 
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:                        
+              'text/html': '<!DOCTYPE html><html lang="de"><body><H1>Like API</H1></body></html>'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'        
+        
+  ilikeItResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt likeApi.RootResourceId
+      PathPart: ilikeit
+      RestApiId: !Ref likeApi
+
+  likePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref ilikeItResource
+      RestApiId: !Ref likeApi
+      AuthorizationType: NONE
+      HttpMethod: POST           
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${likeLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          "application/json": '{"action":"like"}'     
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': ''
+    DependsOn: likeLambdaFunction
+
+  iDontLikeItResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt likeApi.RootResourceId
+      PathPart: idontlikeit
+      RestApiId: !Ref likeApi
+
+  dislikePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref iDontLikeItResource
+      RestApiId: !Ref likeApi
+      AuthorizationType: NONE
+      HttpMethod: POST           
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${likeLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          "application/json": '{"action":"dislike"}'     
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': ''
+    DependsOn: likeLambdaFunction
+
+  textResultResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt likeApi.RootResourceId
+      PathPart: textresult
+      RestApiId: !Ref likeApi
+
+  textResultPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref textResultResource
+      RestApiId: !Ref likeApi
+      AuthorizationType: NONE
+      HttpMethod: GET           
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${likeLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          "application/json": '{}'
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': "#set($inputRoot = $input.path('$'))\n $inputRoot.like Benutzer(n) gefällt das.\n $inputRoot.dislike Benutzer(n) gefällt das nicht."
+    DependsOn: likeLambdaFunction
+
+  voteResultResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt likeApi.RootResourceId
+      PathPart: voteresult
+      RestApiId: !Ref likeApi
+  
+  voteResultMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref voteResultResource
+      RestApiId: !Ref likeApi
+      AuthorizationType: NONE
+      HttpMethod: GET           
+      MethodResponses:
+        - StatusCode: '200'
+      Integration:        
+        Type: AWS
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${likeLambdaFunction.Arn}/invocations"            
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: NEVER
+        RequestTemplates:
+          "application/json": '{}'     
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': ''
+    DependsOn: likeLambdaFunction
+                  
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - rootMethod    
+      - ilikeItResource    
+      - iDontLikeItResource    
+      - voteResultResource    
+    Properties:
+      RestApiId: !Ref likeApi
+      StageName: develop
+      Description: Version 1.0  
+      StageDescription: 
+        LoggingLevel: INFO
+  
+  dynamoAccessLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:            
+      Tags:
+          - Key: project
+            Value: api-gateway-course
+          - Key: created
+            Value: generated
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+
+  dynamoAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Ref customDynamoAccessPolicyName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action: '*'
+          Resource: !GetAtt likeTable.Arn
+      Roles:
+        - !Ref dynamoAccessLambdaRole
+
+  cloudWatchAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Ref customCloudWatchAccessPolicyName
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action: 
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            - logs:PutLogEvents
+            - logs:GetLogEvents
+            - logs:FilterLogEvents
+          Resource: "*"
+      Roles:
+        - !Ref dynamoAccessLambdaRole
+
+
+  # https://docs.aws.amazon.com/de_de/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html
+  likeLambdaFunction:
+    Type: AWS::Lambda::Function    
+    Properties:
+      FunctionName: !Ref likeFunctionName      
+      Role: !GetAtt dynamoAccessLambdaRole.Arn
+      Runtime: nodejs14.x
+      Handler: index.handler            
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+      Code:
+        ZipFile: !Sub |
+          /*
+            Possible Events
+            {"action":"like"}
+            {"action":"dislike"}
+            {} //any other action the get the result
+          */
+          const AWS = require("aws-sdk");
+          const docClient = new AWS.DynamoDB.DocumentClient();      
+          const mainId = 10;
+          const tableName = '${dynamoDbTableName}';
+          exports.handler = async (event) => {             
+              let isLikeAction = event.action === "like";
+              let isDislikeAction = event.action === "dislike";              
+              let currentLike = 0;
+              let currentDislike = 0;              
+              const params = {
+                  TableName:tableName,
+                  Key: {"id":mainId}
+              };              
+              const dbResponse = await docClient.get(params).promise();    
+              if (dbResponse.Item) {
+                  currentLike = dbResponse.Item.like;
+                  currentDislike = dbResponse.Item.dislike;
+              }              
+              if(isLikeAction) currentLike++;
+              if(isDislikeAction) currentDislike++;
+              await putItem(mainId,currentLike, currentDislike);              
+              return {
+                  like:currentLike,
+                  dislike:currentDislike
+              }
+          }
+          async function putItem(id,like,dislike) {
+              const params = {
+                  TableName:'${dynamoDbTableName}',
+                  Item: {
+                      "id": id,            
+                      "dislike": dislike,   
+                      "like": like,   
+                  }
+              };
+              await docClient.put(params).promise();
+          }              
+  
+  likeTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 0
+        WriteCapacityUnits: 0
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: N
+      TableName: !Ref dynamoDbTableName
+      KeySchema: 
+        - AttributeName: id
+          KeyType: HASH
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+
+  accessToApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction     
+      FunctionName: !Ref likeFunctionName
+      Principal: apigateway.amazonaws.com            
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${likeApi}/*
+    DependsOn:
+      - likeLambdaFunction      
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${likeApi}.execute-api.${AWS::Region}.amazonaws.com/develop
+  tableArn:
+    Value: !GetAtt likeTable.Arn

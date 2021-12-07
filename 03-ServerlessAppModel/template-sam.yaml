@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >  
+  Sample SAM Template for sam-app
+  
+Globals:
+  Function:
+    Timeout: 3 
+
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started.html
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-specification-resources-and-properties.html
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      InlineCode: |
+        exports.lambdaHandler = async (event) => {
+          return {
+                  'statusCode': 200,
+                  'body': JSON.stringify({message: 'hello world'})   
+                  }
+          }           
+      Handler: index.lambdaHandler
+      Runtime: nodejs14.x
+      Events:
+        HelloWorld:
+          Type: Api 
+          Properties:
+            Path: /hello
+            Method: get
+
+Outputs:  
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"  

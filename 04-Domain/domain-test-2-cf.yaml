@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Ein API-Beispiel mit Route 53 Konfiguration - Teil 2
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: domain-test-api-2
+  hostedZoneId:
+    Type: String
+    Default: Z00700000N94O00000000
+  myDomain:      
+    Type: String
+    Default: apigatewaykurs.de
+  myCertificateArn:
+    Type: String
+    Default: arn:aws:acm:eu-central-1:...:certificate/...
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:  
+  domainApi:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+
+      Description: Hallo Welt Beispiel mit Domain
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+  rootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !GetAtt domainApi.RootResourceId
+      RestApiId: !Ref domainApi
+      AuthorizationType: NONE
+      HttpMethod: GET          
+      MethodResponses:
+        - StatusCode: '200'                
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': '{"Message": "Test API mit eigener Domain"}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - rootMethod
+    Properties:
+      RestApiId: !Ref domainApi
+      StageName: develop
+      Description: Version 1.0      
+  
+  customDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:     
+      RegionalCertificateArn: !Ref myCertificateArn      
+      # CertificateArn: Verwende diesen Eintrag statt RegionalCertificateArn, wenn du ein Edge optimiertes Zertifikat benutzt!
+      DomainName: !Ref myDomain
+      EndpointConfiguration: 
+        Types:
+          - REGIONAL            
+      SecurityPolicy: TLS_1_2
+      Tags: 
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+  
+  basePathMapping:  
+    Type: 'AWS::ApiGateway::BasePathMapping'
+    Properties:
+      DomainName: !Ref customDomain
+      RestApiId: !Ref domainApi
+      Stage: 'develop'
+    DependsOn: apiDeployment
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-route53-recordset.html
+  route53Record:   
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref hostedZoneId
+      RecordSets:        
+        - Name: !Ref myDomain
+          Type: A
+          AliasTarget:            
+            DNSName:
+              !GetAtt customDomain.RegionalDomainName
+            HostedZoneId:              
+              !GetAtt customDomain.RegionalHostedZoneId                
+    DependsOn: customDomain
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${domainApi}.execute-api.${AWS::Region}.amazonaws.com/develop

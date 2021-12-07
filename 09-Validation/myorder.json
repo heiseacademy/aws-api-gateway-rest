@@ -1,0 +1,11 @@
+{
+    "firstName": "Monika",
+    "lastName": "Mustermann",
+  	"city": "Hamburg",
+  	"zipCode": 20095,
+    "street": "Am Jungfernstieg 3",
+    "position": {
+  		"itemNumber": 100,
+  		"quantity": 1
+	}
+}

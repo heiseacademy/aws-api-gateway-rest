@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Ein Web Prototyp für die Like API
+
+# Cloudformation - Getting started
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/gettingstarted.templatebasics.html
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: web-ui
+  likeApiUrl:
+    Type: String
+    Default: https://API_ID.execute-api.eu-central-1.amazonaws.com/develop/
+    Description: Verwende hier am besten die URL der ausgelieferten Like API. Vergiss nicht den "/" am Ende!
+
+# Ressourcen
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:
+  webUiApi:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+
+      Description: Ein Web Prototyp für die Like API
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+  rootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !GetAtt webUiApi.RootResourceId
+      RestApiId: !Ref webUiApi
+      AuthorizationType: NONE
+      HttpMethod: GET          
+      MethodResponses:
+        - StatusCode: '200'   
+          ResponseModels: { "text/html": "Empty" } 
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'                        
+            ResponseTemplates:                        
+              'text/html': !Sub |                
+                  <!DOCTYPE html>
+                  <html lang="de">
+                  <head>
+                      <meta charset="UTF-8">
+                      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      <title>Like API</title>
+                  </head>
+                  <body>
+                      <h1>Like Api</h1>
+                      <div width="100%">
+                          <label for="url">Api Url</label>
+                          <input id="url" type="text" size="100" value="${likeApiUrl}">
+                      </div>
+                      <h2>Gefällt dir diese Seite?</h2>    
+                      <input type="submit" value="Mag ich" onclick="sendLike()">
+                      <input type="submit" value="Mag ich nicht" onclick="sendDontLike()">    
+                      <h2>Ergebnis</h2>
+                      <hr>
+                      <div id="response"></div>
+                      <div id="error" style="color: red;"></div>
+                  </body>
+                  <script>
+                      function sendLike() {
+                          sendRequest("ilikeit");
+                      }
+                      function sendDontLike() {
+                          sendRequest("idontlikeit");
+                      }
+                      function sendRequest(resource) {                
+                          const apiURL = document.getElementById("url").value + resource;
+                          fetch(apiURL, {
+                              method: "POST",            
+                              mode: "cors",
+                              headers: {
+                                  "Content-Type": "application/json"
+                              },
+                              body: {}
+                          }).then(response => response.json())
+                              .then(data => displayResponse(data))
+                              .catch(error => displayError(error))
+                      }
+                      function displayError(error) {
+                          console.log(error);
+                          let message = "Unbekannter Fehler. Bitte Console prüfen!"
+                          if (error) {
+                              message = error.message;
+                          }
+                          document.getElementById("error").innerHTML = message;
+                          document.getElementById("response").innerHTML = "";
+                      }
+                      function displayResponse(response) {
+                          console.log(error);
+                          document.getElementById("response").innerHTML = JSON.stringify(response);
+                          document.getElementById("error").innerHTML = "";
+                      }    
+                      (function() {
+                      // onload
+                          sendRequest("voteresult")
+                      })();
+                  </script>
+                  </html>
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+              
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - rootMethod
+    Properties:
+      RestApiId: !Ref webUiApi
+      StageName: develop
+      Description: Version 1.0      
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${webUiApi}.execute-api.${AWS::Region}.amazonaws.com/develop

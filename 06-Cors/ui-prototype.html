@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Like API</title>
+</head>
+<body>
+    <h1>Like Api</h1>
+    <div width="100%">
+        <label for="url">Api Url</label>
+        <input id="url" type="text" size="100" value="https://API_ID.execute-api.eu-central-1.amazonaws.com/develop/">
+    </div>
+    <h2>Gefällt dir diese Seite?</h2>    
+    <input type="submit" value="Mag ich" onclick="sendLike()">
+    <input type="submit" value="Mag ich nicht" onclick="sendDontLike()">    
+    <h2>Ergebnis</h2>
+    <hr>
+    <div id="response"></div>
+    <div id="error" style="color: red;"></div>
+</body>
+<script>
+    function sendLike() {
+        sendRequest("ilikeit");
+    }
+    function sendDontLike() {
+        sendRequest("idontlikeit");
+    }
+    function sendRequest(resource) {                
+        const apiURL = document.getElementById("url").value + resource;
+        fetch(apiURL, {
+            method: "POST",            
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: {}
+        }).then(response => response.json())
+            .then(data => displayResponse(data))
+            .catch(error => displayError(error))
+    }
+    function displayError(error) {
+        console.log(error);
+        let message = "Unbekannter Fehler. Bitte Console prüfen!"
+        if (error) {
+            message = error.message;
+        }
+        document.getElementById("error").innerHTML = message;
+        document.getElementById("response").innerHTML = "";
+    }
+    function displayResponse(response) {
+        console.log(response);
+        document.getElementById("response").innerHTML = JSON.stringify(response);
+        document.getElementById("error").innerHTML = "";
+    }    
+    (function() {
+    // onload
+        sendRequest("voteresult")
+    })();
+</script>
+</html>

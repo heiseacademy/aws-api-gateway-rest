@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "firstName": {
+      "type": "string"
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "zipCode": {
+      "type": "integer"
+    },
+    "street": {
+      "type": "string"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "itemNumber": {
+          "type": "integer"
+        },
+        "quantity": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "itemNumber",
+        "quantity"
+      ]
+    }
+  },
+  "required": [
+    "firstName",
+    "lastName",
+    "city",
+    "zipCode",
+    "street"    
+  ]
+}

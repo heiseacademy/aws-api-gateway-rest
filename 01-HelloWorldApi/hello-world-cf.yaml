@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Hallo Welt Api Gateway
+
+# Cloudformation - Getting started
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/gettingstarted.templatebasics.html
+
+Parameters:
+  apiGatewayName:
+    Type: String
+    Default: hello-world-api
+
+# Ressourcen
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ApiGateway.html
+
+Resources:  
+  helloWorldAPI:        
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Tags:
+        - Key: project
+          Value: api-gateway-course
+        - Key: created
+          Value: generated
+
+      Description: Hallo Welt Beispiel
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Ref apiGatewayName
+
+  rootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !GetAtt helloWorldAPI.RootResourceId
+      RestApiId: !Ref helloWorldAPI
+      AuthorizationType: NONE
+      HttpMethod: GET          
+      MethodResponses:
+        - StatusCode: '200'                
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': '{"Message": "Hallo Welt"}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+
+  welcomeResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt helloWorldAPI.RootResourceId
+      PathPart: welcome
+      RestApiId: !Ref helloWorldAPI
+
+  welcomeUserNameResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:    
+      ParentId: !Ref welcomeResource
+      PathPart: "{username}"
+      RestApiId: !Ref helloWorldAPI
+    
+  helloUserMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: !Ref welcomeUserNameResource 
+      RestApiId: !Ref helloWorldAPI
+      AuthorizationType: NONE
+      HttpMethod: GET    
+      MethodResponses:
+        - StatusCode: '200'                
+      Integration:        
+        Type: MOCK
+        IntegrationHttpMethod: GET      
+        IntegrationResponses:
+          - StatusCode: '200'            
+            ResponseTemplates:            
+              'application/json': '{"Message": "Hallo ${method.request.path.username}"}'
+        RequestTemplates:
+          'application/json': '{"statusCode": 200}'
+              
+  apiDeployment:
+    Type: AWS::ApiGateway::Deployment    
+    DependsOn:
+      - rootMethod
+      - helloUserMethod
+    Properties:
+      RestApiId: !Ref helloWorldAPI
+      StageName: develop
+      Description: Version 1.0      
+
+Outputs:
+  apiGatewayInvokeURL:
+    Value: !Sub https://${helloWorldAPI}.execute-api.${AWS::Region}.amazonaws.com/develop

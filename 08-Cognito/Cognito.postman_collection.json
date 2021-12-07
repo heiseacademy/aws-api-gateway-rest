@@ -1,0 +1,264 @@
+{
+	"info": {
+		"_postman_id": "d4d88875-bfe9-43c2-870e-37e7a0b9f8ae",
+		"name": "Cognito",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Login Screen",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://{{custom_domain}}.auth.{{region}}.amazoncognito.com/login?client_id={{client_id}}&redirect_uri={{redirect_url}}&response_type=code",
+					"protocol": "https",
+					"host": [
+						"{{custom_domain}}",
+						"auth",
+						"{{region}}",
+						"amazoncognito",
+						"com"
+					],
+					"path": [
+						"login"
+					],
+					"query": [
+						{
+							"key": "client_id",
+							"value": "{{client_id}}"
+						},
+						{
+							"key": "redirect_uri",
+							"value": "{{redirect_url}}"
+						},
+						{
+							"key": "response_type",
+							"value": "code"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token exchange from code",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{client_secret}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{client_id}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Basic NmNycHFpZ2Y3Z3RmbTNsMWFiNG9mYmpodGg6dDcya2gzOWZhYXZxam83MWR0cXNnMWY1MGUyMXRhOHFzN3RpdjYzYjYxMzFpYzJ1M2lu",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "grant_type",
+							"value": "authorization_code",
+							"type": "text"
+						},
+						{
+							"key": "code",
+							"value": "{{code}}",
+							"type": "text"
+						},
+						{
+							"key": "redirect_uri",
+							"value": "{{redirect_url}}",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "{{client_id}}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://{{custom_domain}}.auth.{{region}}.amazoncognito.com/oauth2/token",
+					"protocol": "https",
+					"host": [
+						"{{custom_domain}}",
+						"auth",
+						"{{region}}",
+						"amazoncognito",
+						"com"
+					],
+					"path": [
+						"oauth2",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token refresh",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "{{client_secret}}",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "{{client_id}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Basic NmNycHFpZ2Y3Z3RmbTNsMWFiNG9mYmpodGg6dDcya2gzOWZhYXZxam83MWR0cXNnMWY1MGUyMXRhOHFzN3RpdjYzYjYxMzFpYzJ1M2lu",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "grant_type",
+							"value": "refresh_token",
+							"type": "text"
+						},
+						{
+							"key": "refresh_token",
+							"value": "eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiUlNBLU9BRVAifQ.BOfL9g4OsF6HCqYMz6m6Xq-K2gJpKdI05gGODgA_u4RudrxPXD6svC0ayKF4VLtWtThxvCTcZEZ3XhsqmMWZ4hXrtvkFDkIpju3XGwNYILRpVdkIIdcU5mzbwSnBRtSz0_JvNTR8ycu34q43oIW8G97TGUoG2FVFQLqUUZzNna9XwY5I9Ugy9f6a4_ItScCzorPaxS2brphqZ_GLgv1cumfKZq7kqGvrpCrFjY7QnQZ9fK75-uR-4G5B-bw44FJElcWOHZboidgTM3DmiH9knGCDz9zEQzPaxtwnqC-hlA2pGUxKj9JP1OAG3few_LXeWVuQ49lBR-0coJAHXzgVxg.gN-14DJt-epQRWnZ.nVMXNu782QV1Oh9mZ78WAKsDHAIpfxRFHw8f-dIXrmLIVQgIX_GsDJN4rCq4Re2TkOcnKjts9IYgVvGjypa4Q-7bbIyaNCtZRiAxs8-DO9XjNafgraL6mmtS9Wv0pyGh-npEHZI2XdEfHw_L0ZknFf0BVeWWtt1HUqD01yP7Z78nmjbb5MgBUW_u0oTAFwYf4-WwHU82H8p1-UOjkwIxVaxsR8415vN6hXdEnaB5UX-HyHoX1lYcI7VB5dLgChGBjRxvuvK-KNwiWIz4EIr6_m5e9y0AHaB5HyM3cAeU-w1CyMx3o_5Q5vFGtH-OYF89xhgrG5NLXt-yMwCreAF4abO8cK2lZrSuA5NeYEbdu8N7zu3NDvRB3jNaVqFHCeLyWMDaGZn-9Qnoqp9aa5s0_AAKoqJ79Qd7tFwcJ6M7cGPkKAV2zx_NYDVGHC1rmz-IB9MITOj8729D_dYGaV7jKWdZXk_qJ7nbibvYQVG0uU4zUl6g6e0jlQy16eBNTHVqNu_HiJoa66HLddTB1uWosm_9RF8v0jFups7MqTCRooZqTKtm1u0-Z50_mnDICN-2fEiZafy7ujmzyHE0D-me09rASa8jJfDRNpuKS4xgDORKzGLsUJ67Z8xbQCcBdnu5-FnIj_kq5LiP4N63-i78oTo9aFXgKnvS36YzqYJCANHtNGz8OrkDKCtz4BGIpVb0HY7N_XnJoPPJITew6HEmDltrtaYcGDbHy9tgUqnq3AkNE9MfXliwCTaIm31JIC-9wq1wca8MYmzsks7MzjUwdn8JcMIL2cjkqaNka80FH7x_VVajCu36u-ul1vAPAwDogBpjMrNF05ogTjGnMezFoY6uggELCV09L--7Q7GDUcXyR1RbFyzWnTw0zxjnVF_JN5ty-M5B9aJL03D0Fpm7vJkkIwwQdu7c0tsigYYqkEngJPcfFCatTOWbNmpKNkeDiojrBSd5W0Stxnxrx3JHTw3j-s3oLcNDkjckbV7aw7cGceDmV3mYR4vbHVDZb3QqIcGt3kae66VjaMC2OCtDBkHlJISnFGfNWZp9uV5ruPAVH08xelAHBhhNVZr6StswQohtDwfBDMD7ad9ju4UbITN6-cADc0F3hDZVf9qXSOdTxDgncGO9kGOfC_UyvEb1eyMtxFqdGjSJ2aV_PtRzmJRGd-E8uPfrS0kGUbQppaqefQsOtAw3LHw0enxgnGXi3Q.9Qp3F7kcCuQlUMwtTIgxwA",
+							"type": "text"
+						},
+						{
+							"key": "redirect_uri",
+							"value": "{{redirect_url}}",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "{{client_id}}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://{{custom_domain}}.auth.{{region}}.amazoncognito.com/oauth2/token",
+					"protocol": "https",
+					"host": [
+						"{{custom_domain}}",
+						"auth",
+						"{{region}}",
+						"amazoncognito",
+						"com"
+					],
+					"path": [
+						"oauth2",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token validation",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://cognito-idp.{{region}}.amazonaws.com/{{user_pool_id}}/.well-known/jwks.json",
+					"protocol": "https",
+					"host": [
+						"cognito-idp",
+						"{{region}}",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"{{user_pool_id}}",
+						".well-known",
+						"jwks.json"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "custom_domain",
+			"value": ""
+		},
+		{
+			"key": "region",
+			"value": "eu-central-1"
+		},
+		{
+			"key": "client_id",
+			"value": ""
+		},
+		{
+			"key": "client_secret",
+			"value": ""
+		},
+		{
+			"key": "code",
+			"value": ""
+		},
+		{
+			"key": "redirect_url",
+			"value": "https://example.com"
+		},
+		{
+			"key": "user_pool_id",
+			"value": ""
+		}
+	]
+}

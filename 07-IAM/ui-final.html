@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@1,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./develop/static/style.css">
+    <title>Like API</title>
+    <style>
+        html,
+        body {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.15em
+        }
+
+        .btn {
+            width: 100px;
+            height: 100px;
+            outline-style: initial;
+            cursor: pointer;
+            background: transparent;
+            font-size: 3em;
+            border: 0;
+        }
+
+        .center {
+            padding-top: 10px;
+            margin: auto;
+            width: 40%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="center">
+        <button title="Mag ich" class="btn" onclick="sendLike()">&#128077;</button>
+        <button title="Mag ich nicht" class="btn" onclick="sendDontLike()">&#128078;</button>
+
+        <div id="response"></div>
+        <div id="error" style="color: red;"></div>
+    </div>
+</body>
+<script>
+    function sendLike() {
+        sendRequest("ilikeit", "POST");
+    }
+    function sendDontLike() {
+        sendRequest("idontlikeit", "POST");
+    }
+    function sendRequest(resource, method) {
+        console.log(window.location);
+        const apiURL = window.location + "/" + resource
+        fetch(apiURL, {
+            method: method,
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(response => response.json())
+            .then(data => displayResponse(data))
+            .catch(error => displayError(error))
+    }
+    function displayError(error) {
+        console.log(error);
+        let message = "Unbekannter Fehler. Bitte Console prüfen!"
+        if (error) {
+            message = error.message;
+        }
+        document.getElementById("error").innerHTML = message;
+        document.getElementById("response").innerHTML = "";
+    }
+    function displayResponse(response) {
+        let responseText = response.like + " Benutzer(n) gefällt das. <br> " + response.dislike + " Benutzer(n) gefällt das nicht."
+        console.log(response);
+        document.getElementById("response").innerHTML = responseText;
+        document.getElementById("error").innerHTML = "";
+    }
+
+    (function () {
+        // onload
+        sendRequest("voteresult", "GET")
+    })();
+</script>
+
+</html>
